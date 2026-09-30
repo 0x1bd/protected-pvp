@@ -13,9 +13,6 @@
       "org.kvxd.protectedpvp.ProtectedPVPMod"
     ]
   },
-  "mixins": [
-    "protected-pvp.mixins.json"
-  ],
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric-language-kotlin": ">=${kotlin_loader_version}",
