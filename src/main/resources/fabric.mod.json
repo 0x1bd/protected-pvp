@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "protected-pvp",
+  "version": "${version}",
+  "name": "protected-pvp",
+  "description": "Protection mod for PvP",
+  "authors": [],
+  "contact": {},
+  "license": "MIT",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "org.kvxd.protectedpvp.ProtectedPVPMod"
+    ]
+  },
+  "mixins": [
+    "protected-pvp.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-language-kotlin": ">=${kotlin_loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
