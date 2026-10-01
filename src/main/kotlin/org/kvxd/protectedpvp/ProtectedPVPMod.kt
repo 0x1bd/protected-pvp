@@ -1,28 +1,40 @@
 package org.kvxd.protectedpvp
 
-import net.fabricmc.api.ModInitializer
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
-import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
-import net.fabricmc.fabric.api.event.player.UseBlockCallback
-import net.minecraft.world.InteractionResult
+import net.minecraft.server.level.ServerLevel
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.fml.common.Mod
+import net.neoforged.neoforge.common.NeoForge
+import net.neoforged.neoforge.event.RegisterCommandsEvent
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent
+import net.neoforged.neoforge.event.level.LevelEvent
+import net.neoforged.neoforge.event.server.ServerStartedEvent
+import net.neoforged.neoforge.event.server.ServerStoppingEvent
 import org.kvxd.protectedpvp.command.PvpCommand
 import org.kvxd.protectedpvp.protection.PvpProtectionService
 
-class ProtectedPVPMod : ModInitializer {
-    override fun onInitialize() {
+@Mod(value = "protected_pvp", dist = [Dist.DEDICATED_SERVER])
+class ProtectedPVPMod {
+    init {
         val protectionService = PvpProtectionService()
 
-        CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
-            PvpCommand.register(dispatcher, protectionService)
+        NeoForge.EVENT_BUS.addListener<RegisterCommandsEvent> { event ->
+            PvpCommand.register(event.dispatcher, protectionService)
         }
-        ServerLivingEntityEvents.ALLOW_DAMAGE.register(protectionService::allowDamage)
-        UseBlockCallback.EVENT.register { player, level, _, hitResult ->
-            protectionService.recordExplosiveBlockInteraction(player, level, hitResult.blockPos)
-            InteractionResult.PASS
+        NeoForge.EVENT_BUS.addListener<LivingIncomingDamageEvent> { event ->
+            if (!protectionService.allowDamage(event.entity, event.source, event.amount)) {
+                event.isCanceled = true
+            }
         }
-        ServerLifecycleEvents.SERVER_STARTED.register(protectionService::start)
-        ServerLifecycleEvents.BEFORE_SAVE.register { _, _, _ -> protectionService.save() }
-        ServerLifecycleEvents.SERVER_STOPPING.register(protectionService::stop)
+        NeoForge.EVENT_BUS.addListener<PlayerInteractEvent.RightClickBlock> { event ->
+            protectionService.recordExplosiveBlockInteraction(event.entity, event.level, event.pos)
+        }
+        NeoForge.EVENT_BUS.addListener<ServerStartedEvent> { event -> protectionService.start(event.server) }
+        NeoForge.EVENT_BUS.addListener<LevelEvent.Save> { event ->
+            if (event.level is ServerLevel) {
+                protectionService.save()
+            }
+        }
+        NeoForge.EVENT_BUS.addListener<ServerStoppingEvent> { event -> protectionService.stop(event.server) }
     }
 }

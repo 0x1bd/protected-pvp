@@ -13,7 +13,7 @@ class DamageAttribution(
     fun findAttackingPlayer(victim: ServerPlayer, source: DamageSource): ServerPlayer? {
         resolveOwner(source.entity)?.let { return it }
         resolveOwner(source.directEntity)?.let { return it }
-        return explosiveInteractionTracker.findPlayer(victim.level(), source)
+        return explosiveInteractionTracker.findPlayer(victim.serverLevel(), source)
     }
 
     private fun resolveOwner(entity: Entity?): ServerPlayer? {
@@ -23,7 +23,7 @@ class DamageAttribution(
         while (current != null && visited.add(current.uuid)) {
             when (current) {
                 is ServerPlayer -> return current
-                is OwnableEntity -> current = current.rootOwner
+                is OwnableEntity -> current = current.owner
                 is TraceableEntity -> current = current.owner
                 else -> return null
             }

@@ -2,8 +2,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "2.4.20"
-    id("fabric-loom") version "1.17.21"
+    kotlin("jvm") version "2.2.20"
+    id("net.neoforged.moddev") version "2.0.148"
     id("maven-publish")
 }
 
@@ -20,34 +20,51 @@ java {
     withSourcesJar()
 }
 
-
-
 repositories {
+    mavenCentral()
+    maven("https://thedarkcolour.github.io/KotlinForForge/") {
+        name = "Kotlin for Forge"
+        content { includeGroup("thedarkcolour") }
+    }
+}
 
+neoForge {
+    version = project.property("neo_version") as String
+    runs {
+        create("server") {
+            server()
+            gameDirectory = file("run/neoforge-1.21.1")
+            programArgument("--nogui")
+        }
+    }
+    mods {
+        create(project.property("mod_id") as String) {
+            sourceSet(sourceSets.main.get())
+        }
+    }
 }
 
 dependencies {
-    minecraft("com.mojang:minecraft:${project.property("minecraft_version")}")
-    mappings(loom.officialMojangMappings())
-    modImplementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
-    modImplementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
+    implementation("thedarkcolour:kotlinforforge-neoforge:${project.property("kotlin_for_forge_version")}")
+}
 
-    modImplementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
+tasks.named<JavaExec>("runServer") {
+    standardInput = System.`in`
 }
 
 tasks.processResources {
-    inputs.property("version", project.version)
-    inputs.property("minecraft_version", project.property("minecraft_version"))
-    inputs.property("loader_version", project.property("loader_version"))
+    val properties = mapOf(
+        "version" to project.version,
+        "mod_id" to project.property("mod_id"),
+        "minecraft_version" to project.property("minecraft_version"),
+        "neo_version" to project.property("neo_version"),
+        "kotlin_for_forge_version" to project.property("kotlin_for_forge_version"),
+    )
+    inputs.properties(properties)
     filteringCharset = "UTF-8"
 
-    filesMatching("fabric.mod.json") {
-        expand(
-            "version" to project.version,
-            "minecraft_version" to project.property("minecraft_version") as String,
-            "loader_version" to project.property("loader_version") as String,
-            "kotlin_loader_version" to project.property("kotlin_loader_version") as String
-        )
+    filesMatching("META-INF/neoforge.mods.toml") {
+        expand(properties)
     }
 }
 
