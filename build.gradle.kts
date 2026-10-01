@@ -22,6 +22,9 @@ java {
 
 repositories {
     mavenCentral()
+    maven("https://cursemaven.com") {
+        content { includeGroup("curse.maven") }
+    }
     maven("https://thedarkcolour.github.io/KotlinForForge/") {
         name = "Kotlin for Forge"
         content { includeGroup("thedarkcolour") }
@@ -42,10 +45,22 @@ neoForge {
             sourceSet(sourceSets.main.get())
         }
     }
+    unitTest {
+        enable()
+        testedMod = mods.getByName(project.property("mod_id") as String)
+    }
 }
 
 dependencies {
     implementation("thedarkcolour:kotlinforforge-neoforge:${project.property("kotlin_for_forge_version")}")
+    compileOnly("curse.maven:irons_spells_n_spellbooks-855414:8237097")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
+    testImplementation("org.mockito:mockito-core:5.14.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.named<JavaExec>("runServer") {

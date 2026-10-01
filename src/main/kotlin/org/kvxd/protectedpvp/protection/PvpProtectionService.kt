@@ -5,6 +5,7 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.storage.LevelResource
@@ -14,9 +15,11 @@ import java.nio.file.Path
 import java.util.UUID
 import kotlin.math.ceil
 
-class PvpProtectionService {
+class PvpProtectionService(
+    moddedOwner: (Entity) -> Entity? = { null },
+) {
     private val explosiveInteractionTracker = ExplosiveInteractionTracker()
-    private val damageAttribution = DamageAttribution(explosiveInteractionTracker)
+    private val damageAttribution = DamageAttribution(explosiveInteractionTracker, moddedOwner)
     private val combatTags = mutableMapOf<UUID, Long>()
     private var preferenceStore: PvpPreferenceStore? = null
 
@@ -114,6 +117,18 @@ class PvpProtectionService {
         combatTags[attacker.uuid] = combatTagEndsAt
         combatTags[entity.uuid] = combatTagEndsAt
         return true
+    }
+
+    fun allowSpellDamage(entity: LivingEntity, source: DamageSource, amount: Float): Boolean {
+        if (entity !is ServerPlayer || amount <= 0) {
+            return true
+        }
+        val attacker = damageAttribution.findAttackingPlayer(entity, source) ?: return true
+        if (attacker.uuid == entity.uuid || store().isPvpEnabled(entity.uuid)) {
+            return true
+        }
+        attacker.displayClientMessage(Component.literal("That player has PvP protection."), true)
+        return false
     }
 
     fun recordExplosiveBlockInteraction(player: Player, level: Level, blockPos: net.minecraft.core.BlockPos) {

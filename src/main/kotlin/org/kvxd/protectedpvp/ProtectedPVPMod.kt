@@ -3,6 +3,8 @@ package org.kvxd.protectedpvp
 import net.minecraft.server.level.ServerLevel
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.fml.common.Mod
+import net.neoforged.fml.ModList
+import net.neoforged.bus.api.EventPriority
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent
@@ -11,17 +13,24 @@ import net.neoforged.neoforge.event.level.LevelEvent
 import net.neoforged.neoforge.event.server.ServerStartedEvent
 import net.neoforged.neoforge.event.server.ServerStoppingEvent
 import org.kvxd.protectedpvp.command.PvpCommand
+import org.kvxd.protectedpvp.compat.irons.IronSpellbooksCompatibility
 import org.kvxd.protectedpvp.protection.PvpProtectionService
 
 @Mod(value = "protected_pvp", dist = [Dist.DEDICATED_SERVER])
 class ProtectedPVPMod {
     init {
-        val protectionService = PvpProtectionService()
+        val spellbooksCompatibility = if (ModList.get().isLoaded("irons_spellbooks")) {
+            IronSpellbooksCompatibility()
+        } else {
+            null
+        }
+        val protectionService = PvpProtectionService { entity -> spellbooksCompatibility?.findOwner(entity) }
+        spellbooksCompatibility?.register(protectionService)
 
         NeoForge.EVENT_BUS.addListener<RegisterCommandsEvent> { event ->
             PvpCommand.register(event.dispatcher, protectionService)
         }
-        NeoForge.EVENT_BUS.addListener<LivingIncomingDamageEvent> { event ->
+        NeoForge.EVENT_BUS.addListener<LivingIncomingDamageEvent>(EventPriority.HIGHEST) { event ->
             if (!protectionService.allowDamage(event.entity, event.source, event.amount)) {
                 event.isCanceled = true
             }

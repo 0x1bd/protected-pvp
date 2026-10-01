@@ -9,6 +9,7 @@ import java.util.UUID
 
 class DamageAttribution(
     private val explosiveInteractionTracker: ExplosiveInteractionTracker,
+    private val moddedOwner: (Entity) -> Entity? = { null },
 ) {
     fun findAttackingPlayer(victim: ServerPlayer, source: DamageSource): ServerPlayer? {
         resolveOwner(source.entity)?.let { return it }
@@ -21,12 +22,12 @@ class DamageAttribution(
         val visited = HashSet<UUID>()
 
         while (current != null && visited.add(current.uuid)) {
-            when (current) {
-                is ServerPlayer -> return current
-                is OwnableEntity -> current = current.owner
-                is TraceableEntity -> current = current.owner
-                else -> return null
+            if (current is ServerPlayer) {
+                return current
             }
+            current = moddedOwner(current)
+                ?: (current as? OwnableEntity)?.owner
+                ?: (current as? TraceableEntity)?.owner
         }
 
         return null
